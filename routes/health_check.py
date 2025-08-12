@@ -5,6 +5,9 @@ from db.session import engine
 
 router = APIRouter()
 
+# ------------------------------
+# Health check
+# ------------------------------
 @router.get("/", status_code=status.HTTP_200_OK)
 def health_check():
     try:
