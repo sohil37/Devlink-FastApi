@@ -1,11 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Response, Cookie
 from sqlalchemy.orm import Session
-from services.user_services import get_user_by_email
+from services.user_services import get_user_by_email, get_user_by_id
 from core.auth import verify_password, create_access_token, create_refresh_token, decode_token, get_password_hash
 from db.session import get_db
 from models.user import User
 from schemas.user import UserCredentials, UserCreateResponse
-from schemas.auth import Token
+from schemas.auth import TokenWithUserInfo
 from core import config
 
 router = APIRouter()
@@ -13,9 +13,9 @@ router = APIRouter()
 # ------------------------------
 # Helper: issue new tokens & set cookie
 # ------------------------------
-def issue_tokens(email: str, user: User, db: Session, response: Response) -> Token:
-    access_token = create_access_token({"sub": email})
-    refresh_token = create_refresh_token({"sub": email})
+def send_tokens_with_user_info(user: User, db: Session, response: Response) -> TokenWithUserInfo:
+    access_token = create_access_token({"sub": str(user.id)})
+    refresh_token = create_refresh_token({"sub": str(user.id)})
     user.refresh_token = refresh_token
     db.commit()
     response.set_cookie(
@@ -25,7 +25,7 @@ def issue_tokens(email: str, user: User, db: Session, response: Response) -> Tok
         samesite="strict",
         secure=False  # True in prod with HTTPS
     )
-    return Token(access_token=access_token, token_type="bearer")
+    return TokenWithUserInfo(access_token=access_token, token_type="bearer", user_id=user.id, email=user.email)
 
 # ------------------------------
 # Register
@@ -43,18 +43,18 @@ def register(credentials: UserCredentials, db: Session = Depends(get_db)):
 # ------------------------------
 # Login
 # ------------------------------
-@router.post("/login", response_model=Token)
+@router.post("/login", response_model=TokenWithUserInfo)
 async def login(credentials: UserCredentials, response: Response, db: Session = Depends(get_db)):
     user = get_user_by_email(db, credentials.email)
     if not user or not verify_password(credentials.password, user.password):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Incorrect username or password",
                             headers={"WWW-Authenticate": "Bearer"})
-    return issue_tokens(user.email, user, db, response)
+    return send_tokens_with_user_info(user, db, response)
 
 # ------------------------------
 # Refresh token
 # ------------------------------
-@router.get("/refresh_token", response_model=Token)
+@router.get("/refresh_token", response_model=TokenWithUserInfo)
 async def refresh_token(response: Response, db: Session = Depends(get_db), refresh_token: str = Cookie(None)):
     if not refresh_token:
         raise HTTPException(status_code=401, detail="Refresh token missing")
@@ -62,11 +62,11 @@ async def refresh_token(response: Response, db: Session = Depends(get_db), refre
         payload = decode_token(refresh_token, config.REFRESH_TOKEN_SECRET_KEY)
         if payload.get("type") != "refresh":
             raise HTTPException(status_code=401, detail="Invalid token type")
-        user_email = payload.get("sub")
-        user = get_user_by_email(db, user_email)
+        user_id = payload.get("sub")
+        user = get_user_by_id(db, user_id)
         if not user or user.refresh_token != refresh_token:
             raise HTTPException(status_code=401, detail="Invalid or expired refresh token")
-        return issue_tokens(user_email, user, db, response)
+        return send_tokens_with_user_info(user, db, response)
     except Exception:
         raise HTTPException(status_code=401, detail="Invalid or expired refresh token")
 
@@ -86,8 +86,8 @@ async def logout(
     try:
         # Remove refresh token from DB
         payload = decode_token(refresh_token, config.REFRESH_TOKEN_SECRET_KEY)
-        user_email = payload.get("sub")
-        user = get_user_by_email(db, user_email)
+        user_id = payload.get("sub")
+        user = get_user_by_id(db, user_id)
         if user:
             user.refresh_token = None
             db.commit()

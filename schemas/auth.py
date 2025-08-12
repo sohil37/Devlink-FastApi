@@ -1,5 +1,7 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 
-class Token(BaseModel):
+class TokenWithUserInfo(BaseModel):
     access_token: str
     token_type: str
+    user_id: int
+    email: EmailStr

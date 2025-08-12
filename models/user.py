@@ -4,13 +4,7 @@ from sqlalchemy import (
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from db.base import Base
-import enum
-
-# Enum for gender
-class GenderEnum(enum.Enum):
-    male = "male"
-    female = "female"
-    other = "other"
+from enums.user import GenderEnum
 
 # Users Table
 class User(Base):
@@ -38,12 +32,12 @@ class UserAddress(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
-    line_1 = Column(String(100))
-    line_2 = Column(String(100))
-    city = Column(String(100))
-    postal_code = Column(String(15))
-    state = Column(String(100))
-    country = Column(String(100))
+    line_1 = Column(String(100), nullable=False)
+    line_2 = Column(String(100), nullable=False)
+    city = Column(String(100), nullable=False)
+    postal_code = Column(String(15), nullable=False)
+    state = Column(String(100), nullable=False)
+    country = Column(String(100), nullable=False)
     created_at = Column(DateTime, server_default=func.current_timestamp())
     updated_at = Column(DateTime, server_default=func.current_timestamp(), onupdate=func.current_timestamp())
 
