@@ -38,8 +38,8 @@ class UserAddress(Base):
     postal_code = Column(String(15), nullable=False)
     state = Column(String(100), nullable=False)
     country = Column(String(100), nullable=False)
-    created_at = Column(DateTime, server_default=func.current_timestamp())
-    updated_at = Column(DateTime, server_default=func.current_timestamp(), onupdate=func.current_timestamp())
+    created_at = Column(TIMESTAMP, server_default=func.current_timestamp())
+    updated_at = Column(TIMESTAMP, server_default=func.current_timestamp(), onupdate=func.current_timestamp())
 
     # Relationships
     user = relationship("User", back_populates="addresses")
@@ -52,15 +52,15 @@ class UserProfile(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
-    first_name = Column(String(100), nullable=False)
-    last_name = Column(String(100), nullable=False)
+    first_name = Column(String(100))
+    last_name = Column(String(100))
     gender = Column(Enum(GenderEnum), default=None)
-    phone_no = Column(String(15), nullable=False)
-    dob = Column(Date, nullable=False)
+    phone_no = Column(String(15))
+    dob = Column(Date)
     address_id = Column(Integer, ForeignKey("user_addresses.id", ondelete="CASCADE"))
     profile_picture_url = Column(String(255))
     created_at = Column(TIMESTAMP, server_default=func.current_timestamp())
-    updated_at = Column(TIMESTAMP, server_default=func.current_timestamp())
+    updated_at = Column(TIMESTAMP, server_default=func.current_timestamp(), onupdate=func.current_timestamp())
 
     # Relationships
     user = relationship("User", back_populates="profile")

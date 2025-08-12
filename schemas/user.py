@@ -1,13 +1,7 @@
-from pydantic import BaseModel, EmailStr
-from datetime import datetime
 from typing import Optional
 from pydantic import BaseModel
 from datetime import date, datetime
 from enums.user import GenderEnum
-
-class UserCredentials(BaseModel):
-    email: EmailStr
-    password: str
 
 class UserCreateResponse(BaseModel):
     id: int
@@ -51,7 +45,6 @@ class UserAddressResponse(UserAddressBase):
 # UserProfile Schema
 # ----------------------
 class UserProfileBase(BaseModel):
-    user_id: int
     first_name: Optional[str] = None
     last_name: Optional[str] = None
     gender: Optional[GenderEnum] = None
@@ -60,13 +53,10 @@ class UserProfileBase(BaseModel):
     address_id: Optional[int] = None
     profile_picture_url: Optional[str] = None
 
-class UserProfileCreate(UserProfileBase):
-    pass
-
 class UserProfileUpdate(UserProfileBase):
-    pass
+    user_id: int
 
-class UserProfileResponse(UserProfileBase):
+class UserProfileResponse(BaseModel):
     id: int
     message: str
     class Config:
