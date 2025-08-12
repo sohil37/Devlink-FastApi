@@ -25,7 +25,6 @@ class User(Base):
     addresses = relationship("UserAddress", back_populates="user", cascade="all, delete-orphan")
     profile = relationship("UserProfile", back_populates="user", uselist=False, cascade="all, delete-orphan")
 
-
 # User Addresses Table
 class UserAddress(Base):
     __tablename__ = "user_addresses"
