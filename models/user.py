@@ -42,8 +42,6 @@ class UserAddress(Base):
 
     # Relationships
     user = relationship("User", back_populates="addresses")
-    profiles = relationship("UserProfile", back_populates="address", cascade="all, delete-orphan")
-
 
 # User Profiles Table
 class UserProfile(Base):
@@ -56,11 +54,9 @@ class UserProfile(Base):
     gender = Column(Enum(GenderEnum), default=None)
     phone_no = Column(String(15))
     dob = Column(Date)
-    address_id = Column(Integer, ForeignKey("user_addresses.id", ondelete="CASCADE"))
     profile_picture_url = Column(String(255))
     created_at = Column(TIMESTAMP, server_default=func.current_timestamp())
     updated_at = Column(TIMESTAMP, server_default=func.current_timestamp(), onupdate=func.current_timestamp())
 
     # Relationships
     user = relationship("User", back_populates="profile")
-    address = relationship("UserAddress", back_populates="profiles")

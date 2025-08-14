@@ -1,10 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Response, Cookie, Form
 from sqlalchemy.orm import Session
+from deps.auth import get_user_id_from_access_token
+from schemas.user.user import UserCreateResponse
+from schemas.user.user_address import UserAddressBase
+from schemas.user.user_profile import UserProfileBase
 from services.user_services import get_user_by_email, get_user_by_id
 from core.auth import verify_password, create_access_token, create_refresh_token, decode_token, get_password_hash
 from db.session import get_db
-from models.user import User
-from schemas.user import UserCreateResponse
+from models.user import User, UserProfile, UserAddress
 from schemas.auth import TokenWithUserInfo
 from core import config
 
@@ -34,10 +37,18 @@ def send_tokens_with_user_info(user: User, db: Session, response: Response) -> T
 def register(username: str = Form(...), password: str = Form(...), db: Session = Depends(get_db)):
     if get_user_by_email(db, username):
         raise HTTPException(status_code=400, detail="Email already registered")
+    # Add user to User table
     user = User(email=username, password=get_password_hash(password))
     db.add(user)
     db.commit()
     db.refresh(user)
+    # Add empty profile to UserProfile table
+    user_profile = UserProfile(**UserProfileBase().__dict__, user_id=user.id)
+    db.add(user_profile)
+    # Add empty address to UserAddress table
+    user_address = UserAddress(**UserAddressBase().__dict__, user_id=user.id)
+    db.add(user_address)
+    db.commit()
     return UserCreateResponse(id=user.id, created_at=user.created_at, message="User registered successfully")
 
 # ------------------------------
@@ -102,3 +113,17 @@ async def logout(
         secure=False  # True in production
     )
     return {"message": "Logged out successfully"}
+
+# ------------------------------
+# Delete Account
+# ------------------------------
+@router.delete("/delete_account", status_code=status.HTTP_200_OK)
+async def delete_account(
+    response: Response,
+    db: Session = Depends(get_db),
+    user_id: int = Depends(get_user_id_from_access_token)
+):
+    user = get_user_by_id(db=db, user_id=user_id)
+    db.delete(user)
+    db.commit()
+    return {"message": "Account deleted successfully"}
